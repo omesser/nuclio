@@ -40,7 +40,7 @@ func StringToStringMap(source string, separator string) map[string]string {
 func StructureToMap(input interface{}) map[string]interface{} {
 	var decodedInput interface{}
 
-	// TODO: find a more elegent mechanism than JSON encode/decode
+	// TODO: find a more elegant mechanism than JSON encode/decode
 	encodedInput, _ := json.Marshal(input)
 	if err := json.Unmarshal(encodedInput, &decodedInput); err != nil {
 		return map[string]interface{}{}
