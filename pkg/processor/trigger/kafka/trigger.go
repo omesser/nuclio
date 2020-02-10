@@ -92,7 +92,12 @@ func newTrigger(parentLogger logger.Logger,
 
 	// This is the minimum required for sarama's consumer groups implementation.
 	// Therefore, we do not support anything older that this version.
-	newTrigger.kafkaConfig.Version = sarama.V0_10_2_0
+	//newTrigger.kafkaConfig.Version = sarama.V0_10_2_0
+
+	// for JoinGroupRequest V2, for FindCoordinator V1
+	//newTrigger.kafkaConfig.Version = sarama.V0_11_0_0
+
+	newTrigger.kafkaConfig.Version = sarama.V2_3_0_0
 
 	return newTrigger, nil
 }

@@ -139,6 +139,11 @@ func (om *offsetManager) fetchInitialOffset(topic string, partition int32, retri
 
 	req := new(OffsetFetchRequest)
 	req.Version = 1
+
+	if om.conf.Version.IsAtLeast(V1_0_0_0) {
+		req.Version = 3
+	}
+
 	req.ConsumerGroup = om.group
 	req.AddPartition(topic, partition)
 

@@ -1,6 +1,8 @@
 package sarama
 
 type SyncGroupResponse struct {
+	Version          int16
+	ThrottleTimeMs   int32
 	Err              KError
 	MemberAssignment []byte
 }
@@ -17,6 +19,14 @@ func (r *SyncGroupResponse) encode(pe packetEncoder) error {
 }
 
 func (r *SyncGroupResponse) decode(pd packetDecoder, version int16) (err error) {
+	if r.version() >= 1 {
+		throttleTimeMs, err := pd.getInt32()
+		if err != nil {
+			return err
+		}
+		r.ThrottleTimeMs = throttleTimeMs
+	}
+
 	kerr, err := pd.getInt16()
 	if err != nil {
 		return err
@@ -33,7 +43,7 @@ func (r *SyncGroupResponse) key() int16 {
 }
 
 func (r *SyncGroupResponse) version() int16 {
-	return 0
+	return r.Version
 }
 
 func (r *SyncGroupResponse) requiredVersion() KafkaVersion {

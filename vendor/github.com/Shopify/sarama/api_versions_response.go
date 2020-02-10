@@ -34,8 +34,9 @@ func (b *ApiVersionsResponseBlock) decode(pd packetDecoder) error {
 
 //ApiVersionsResponse is an api version response type
 type ApiVersionsResponse struct {
-	Err         KError
-	ApiVersions []*ApiVersionsResponseBlock
+	Err            KError
+	ApiVersions    []*ApiVersionsResponseBlock
+	ThrottleTimeMs int32
 }
 
 func (r *ApiVersionsResponse) encode(pe packetEncoder) error {
@@ -72,6 +73,12 @@ func (r *ApiVersionsResponse) decode(pd packetDecoder, version int16) error {
 		}
 		r.ApiVersions[i] = block
 	}
+
+	throttleTimeMs, err := pd.getInt32()
+	if err != nil {
+		return err
+	}
+	r.ThrottleTimeMs = throttleTimeMs
 
 	return nil
 }

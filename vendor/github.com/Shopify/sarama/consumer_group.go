@@ -211,6 +211,18 @@ func (c *consumerGroup) newSession(ctx context.Context, topics []string, handler
 		return c.retryNewSession(ctx, topics, handler, retries, true)
 	}
 
+	// declare version
+	var apiVersionsRequest *ApiVersionsRequest
+	if c.config.Version.IsAtLeast(V1_0_0_0) {
+		apiVersionsRequest = &ApiVersionsRequest{Version: 1}
+	} else {
+		apiVersionsRequest = &ApiVersionsRequest{Version: 0}
+	}
+	if _, err = coordinator.ApiVersions(apiVersionsRequest); err != nil {
+		_ = coordinator.Close()
+		return nil, err
+	}
+
 	// Join consumer group
 	join, err := c.joinGroupRequest(coordinator, topics)
 	if err != nil {
@@ -309,6 +321,9 @@ func (c *consumerGroup) joinGroupRequest(coordinator *Broker, topics []string) (
 		req.Version = 1
 		req.RebalanceTimeout = int32(c.config.Consumer.Group.Rebalance.Timeout / time.Millisecond)
 	}
+	if c.config.Version.IsAtLeast(V0_11_0_0) {
+		req.Version = 2
+	}
 
 	// use static user-data if configured, otherwise use consumer-group userdata from the last sync
 	userData := c.config.Consumer.Group.Member.UserData
@@ -318,6 +333,7 @@ func (c *consumerGroup) joinGroupRequest(coordinator *Broker, topics []string) (
 	meta := &ConsumerGroupMemberMetadata{
 		Topics:   topics,
 		UserData: userData,
+		Version: 5,
 	}
 	strategy := c.config.Consumer.Group.Rebalance.Strategy
 	if err := req.AddGroupProtocolMetadata(strategy.Name(), meta); err != nil {
@@ -332,6 +348,11 @@ func (c *consumerGroup) syncGroupRequest(coordinator *Broker, plan BalanceStrate
 		GroupId:      c.groupID,
 		MemberId:     c.memberID,
 		GenerationId: generationID,
+		Version: 0,
+	}
+
+	if c.config.Version.IsAtLeast(V1_0_0_0) {
+		req.Version = 1
 	}
 	for memberID, topics := range plan {
 		assignment := &ConsumerGroupMemberAssignment{Topics: topics}
@@ -356,9 +377,14 @@ func (c *consumerGroup) syncGroupRequest(coordinator *Broker, plan BalanceStrate
 
 func (c *consumerGroup) heartbeatRequest(coordinator *Broker, memberID string, generationID int32) (*HeartbeatResponse, error) {
 	req := &HeartbeatRequest{
+		Version:      0,
 		GroupId:      c.groupID,
 		MemberId:     memberID,
 		GenerationId: generationID,
+	}
+
+	if c.config.Version.IsAtLeast(V1_0_0_0) {
+		req.Version = 1
 	}
 
 	return coordinator.Heartbeat(req)

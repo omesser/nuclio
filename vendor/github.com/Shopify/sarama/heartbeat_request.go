@@ -1,6 +1,7 @@
 package sarama
 
 type HeartbeatRequest struct {
+	Version      int16
 	GroupId      string
 	GenerationId int32
 	MemberId     string
@@ -39,7 +40,7 @@ func (r *HeartbeatRequest) key() int16 {
 }
 
 func (r *HeartbeatRequest) version() int16 {
-	return 0
+	return r.Version
 }
 
 func (r *HeartbeatRequest) requiredVersion() KafkaVersion {

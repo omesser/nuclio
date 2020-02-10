@@ -951,6 +951,10 @@ func (client *client) getConsumerMetadata(consumerGroup string, attemptsRemainin
 		request.CoordinatorKey = consumerGroup
 		request.CoordinatorType = CoordinatorGroup
 
+		if client.conf.Version.IsAtLeast(V1_0_0_0) {
+			request.Version = 1
+		}
+
 		response, err := broker.FindCoordinator(request)
 
 		if err != nil {

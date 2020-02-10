@@ -1,6 +1,7 @@
 package sarama
 
 type SyncGroupRequest struct {
+	Version          int16
 	GroupId          string
 	GenerationId     int32
 	MemberId         string
@@ -74,7 +75,7 @@ func (r *SyncGroupRequest) key() int16 {
 }
 
 func (r *SyncGroupRequest) version() int16 {
-	return 0
+	return r.Version
 }
 
 func (r *SyncGroupRequest) requiredVersion() KafkaVersion {
