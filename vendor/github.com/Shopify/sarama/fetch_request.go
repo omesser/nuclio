@@ -1,12 +1,17 @@
 package sarama
 
 type fetchRequestBlock struct {
-	fetchOffset int64
-	maxBytes    int32
+	version        int16
+	fetchOffset    int64
+	logStartOffset int64
+	maxBytes       int32
 }
 
 func (b *fetchRequestBlock) encode(pe packetEncoder) error {
 	pe.putInt64(b.fetchOffset)
+	if b.version >= 5 {
+		pe.putInt64(b.logStartOffset)
+	}
 	pe.putInt32(b.maxBytes)
 	return nil
 }
@@ -25,12 +30,14 @@ func (b *fetchRequestBlock) decode(pd packetDecoder) (err error) {
 // https://issues.apache.org/jira/browse/KAFKA-2063 for a discussion of the issues leading up to that.  The KIP is at
 // https://cwiki.apache.org/confluence/display/KAFKA/KIP-74%3A+Add+Fetch+Response+Size+Limit+in+Bytes
 type FetchRequest struct {
-	MaxWaitTime int32
-	MinBytes    int32
-	MaxBytes    int32
-	Version     int16
-	Isolation   IsolationLevel
-	blocks      map[string]map[int32]*fetchRequestBlock
+	MaxWaitTime  int32
+	MinBytes     int32
+	MaxBytes     int32
+	Version      int16
+	Isolation    IsolationLevel
+	SessionID    int32
+	SessionEpoch int32
+	blocks       map[string]map[int32]*fetchRequestBlock
 }
 
 type IsolationLevel int8
@@ -50,6 +57,12 @@ func (r *FetchRequest) encode(pe packetEncoder) (err error) {
 	if r.Version >= 4 {
 		pe.putInt8(int8(r.Isolation))
 	}
+
+	if r.Version >= 7 {
+		pe.putInt32(r.SessionID)
+		pe.putInt32(r.SessionEpoch)
+	}
+
 	err = pe.putArrayLength(len(r.blocks))
 	if err != nil {
 		return err
@@ -153,7 +166,12 @@ func (r *FetchRequest) requiredVersion() KafkaVersion {
 	}
 }
 
-func (r *FetchRequest) AddBlock(topic string, partitionID int32, fetchOffset int64, maxBytes int32) {
+func (r *FetchRequest) AddBlock(version int16,
+	topic string,
+	partitionID int32,
+	fetchOffset int64,
+	logStartOffset int64,
+	maxBytes int32) {
 	if r.blocks == nil {
 		r.blocks = make(map[string]map[int32]*fetchRequestBlock)
 	}
@@ -163,7 +181,9 @@ func (r *FetchRequest) AddBlock(topic string, partitionID int32, fetchOffset int
 	}
 
 	tmp := new(fetchRequestBlock)
+	tmp.version = version
 	tmp.maxBytes = maxBytes
+	tmp.logStartOffset = logStartOffset
 	tmp.fetchOffset = fetchOffset
 
 	r.blocks[topic][partitionID] = tmp

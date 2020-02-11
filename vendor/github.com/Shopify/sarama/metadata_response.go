@@ -1,5 +1,7 @@
 package sarama
 
+import "time"
+
 type PartitionMetadata struct {
 	Err             KError
 	ID              int32
@@ -141,22 +143,24 @@ func (tm *TopicMetadata) encode(pe packetEncoder, version int16) (err error) {
 }
 
 type MetadataResponse struct {
-	Version        int16
-	ThrottleTimeMs int32
-	Brokers        []*Broker
-	ClusterID      *string
-	ControllerID   int32
-	Topics         []*TopicMetadata
+	Version      int16
+	ThrottleTime time.Duration
+	Brokers      []*Broker
+	ClusterID    *string
+	ControllerID int32
+	Topics       []*TopicMetadata
 }
 
 func (r *MetadataResponse) decode(pd packetDecoder, version int16) (err error) {
 	r.Version = version
 
 	if version >= 3 {
-		r.ThrottleTimeMs, err = pd.getInt32()
+		throttle, err := pd.getInt32()
 		if err != nil {
 			return err
 		}
+
+		r.ThrottleTime = time.Duration(throttle) * time.Millisecond
 	}
 
 	n, err := pd.getArrayLength()
@@ -208,7 +212,7 @@ func (r *MetadataResponse) decode(pd packetDecoder, version int16) (err error) {
 
 func (r *MetadataResponse) encode(pe packetEncoder) error {
 	if r.Version >= 3 {
-		pe.putInt32(r.ThrottleTimeMs)
+		pe.putInt32(int32(r.ThrottleTime / time.Millisecond))
 	}
 
 	err := pe.putArrayLength(len(r.Brokers))

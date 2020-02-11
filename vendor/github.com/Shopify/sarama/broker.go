@@ -358,6 +358,7 @@ func (b *Broker) Produce(request *ProduceRequest) (*ProduceResponse, error) {
 //Fetch returns a FetchResponse or error
 func (b *Broker) Fetch(request *FetchRequest) (*FetchResponse, error) {
 	response := new(FetchResponse)
+	response.Version = request.version()
 
 	err := b.sendAndReceive(request, response)
 	if err != nil {

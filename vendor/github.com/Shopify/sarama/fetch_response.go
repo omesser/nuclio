@@ -200,6 +200,8 @@ func (b *FetchResponseBlock) getAbortedTransactions() []*AbortedTransaction {
 type FetchResponse struct {
 	Blocks        map[string]map[int32]*FetchResponseBlock
 	ThrottleTime  time.Duration
+	ErrorCode     int16
+	SessionID     int16
 	Version       int16 // v1 requires 0.9+, v2 requires 0.10+
 	LogAppendTime bool
 	Timestamp     time.Time
