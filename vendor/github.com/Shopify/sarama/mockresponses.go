@@ -314,7 +314,7 @@ func (mfr *MockFetchResponse) For(reqBody versionedDecoder) encoder {
 	res := &FetchResponse{
 		Version: mfr.version,
 	}
-	for topic, partitions := range fetchRequest.blocks {
+	for topic, partitions := range fetchRequest.topicsBlocks {
 		for partition, block := range partitions {
 			initialOffset := block.fetchOffset
 			offset := initialOffset

@@ -31,7 +31,7 @@ var (
 
 func TestOffsetRequest(t *testing.T) {
 	request := new(OffsetRequest)
-	testRequest(t, "no blocks", request, offsetRequestNoBlocks)
+	testRequest(t, "no topicsBlocks", request, offsetRequestNoBlocks)
 
 	request.AddBlock("foo", 4, 1, 2)
 	testRequest(t, "one block", request, offsetRequestOneBlock)
@@ -40,7 +40,7 @@ func TestOffsetRequest(t *testing.T) {
 func TestOffsetRequestV1(t *testing.T) {
 	request := new(OffsetRequest)
 	request.Version = 1
-	testRequest(t, "no blocks", request, offsetRequestNoBlocks)
+	testRequest(t, "no topicsBlocks", request, offsetRequestNoBlocks)
 
 	request.AddBlock("bar", 4, 1, 2) // Last argument is ignored for V1
 	testRequest(t, "one block", request, offsetRequestOneBlockV1)

@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rcrowley/go-metrics"
 )
 
@@ -882,18 +881,13 @@ func (bc *brokerConsumer) abort(err error) {
 }
 
 func (bc *brokerConsumer) fetchNewMessages() (*FetchResponse, error) {
-	sessionUUID, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
-
 	request := &FetchRequest{
 		MinBytes:    bc.consumer.conf.Consumer.Fetch.Min,
 		MaxWaitTime: int32(bc.consumer.conf.Consumer.MaxWaitTime / time.Millisecond),
 
 		// these fields will only be encoded and used in V7 Fetch Request protocol
-		SessionID: int32(sessionUUID.ID()),
-		SessionEpoch: int32(time.Now().Unix()),
+		SessionID: 0,
+		SessionEpoch: -1,
 	}
 	if bc.consumer.conf.Version.IsAtLeast(V0_9_0_0) {
 		request.Version = 1
@@ -915,7 +909,7 @@ func (bc *brokerConsumer) fetchNewMessages() (*FetchResponse, error) {
 	}
 
 	for child := range bc.subscriptions {
-		request.AddBlock(request.Version, child.topic, child.partition, child.offset, 0, child.fetchSize)
+		request.AddTopicBlock(request.Version, child.topic, child.partition, child.offset, 0, child.fetchSize)
 	}
 
 	return bc.broker.Fetch(request)

@@ -30,7 +30,7 @@ var (
 
 func TestFetchRequest(t *testing.T) {
 	request := new(FetchRequest)
-	testRequest(t, "no blocks", request, fetchRequestNoBlocks)
+	testRequest(t, "no topicsBlocks", request, fetchRequestNoBlocks)
 
 	request.MaxWaitTime = 0x20
 	request.MinBytes = 0xEF
@@ -38,7 +38,7 @@ func TestFetchRequest(t *testing.T) {
 
 	request.MaxWaitTime = 0
 	request.MinBytes = 0
-	request.AddBlock("topic", 0x12, 0x34, 0x56)
+	request.AddTopicBlock("topic", 0x12, 0x34, 0x56)
 	testRequest(t, "one block", request, fetchRequestOneBlock)
 
 	request.Version = 4

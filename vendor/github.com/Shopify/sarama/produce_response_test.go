@@ -50,14 +50,14 @@ var (
 func TestProduceResponseDecode(t *testing.T) {
 	response := ProduceResponse{}
 
-	testVersionDecodable(t, "no blocks", &response, produceResponseNoBlocksV0, 0)
+	testVersionDecodable(t, "no topicsBlocks", &response, produceResponseNoBlocksV0, 0)
 	if len(response.Blocks) != 0 {
 		t.Error("Decoding produced", len(response.Blocks), "topics where there were none")
 	}
 
 	for v, produceResponseManyBlocks := range produceResponseManyBlocksVersions {
 		t.Logf("Decoding produceResponseManyBlocks version %d", v)
-		testVersionDecodable(t, "many blocks", &response, produceResponseManyBlocks, int16(v))
+		testVersionDecodable(t, "many topicsBlocks", &response, produceResponseManyBlocks, int16(v))
 		if len(response.Blocks) != 1 {
 			t.Error("Decoding produced", len(response.Blocks), "topics where there was 1")
 		}
@@ -102,7 +102,7 @@ func TestProduceResponseEncode(t *testing.T) {
 	response.ThrottleTime = 100 * time.Millisecond
 	for v, produceResponseManyBlocks := range produceResponseManyBlocksVersions {
 		response.Version = int16(v)
-		testEncodable(t, fmt.Sprintf("many blocks version %d", v), &response, produceResponseManyBlocks)
+		testEncodable(t, fmt.Sprintf("many topicsBlocks version %d", v), &response, produceResponseManyBlocks)
 	}
 }
 

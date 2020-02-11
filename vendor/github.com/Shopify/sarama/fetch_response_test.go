@@ -144,7 +144,7 @@ func TestEmptyFetchResponse(t *testing.T) {
 	testVersionDecodable(t, "empty", &response, emptyFetchResponse, 0)
 
 	if len(response.Blocks) != 0 {
-		t.Error("Decoding produced topic blocks where there were none.")
+		t.Error("Decoding produced topic topicsBlocks where there were none.")
 	}
 
 }
@@ -154,11 +154,11 @@ func TestOneMessageFetchResponse(t *testing.T) {
 	testVersionDecodable(t, "one message", &response, oneMessageFetchResponse, 0)
 
 	if len(response.Blocks) != 1 {
-		t.Fatal("Decoding produced incorrect number of topic blocks.")
+		t.Fatal("Decoding produced incorrect number of topic topicsBlocks.")
 	}
 
 	if len(response.Blocks["topic"]) != 1 {
-		t.Fatal("Decoding produced incorrect number of partition blocks for topic.")
+		t.Fatal("Decoding produced incorrect number of partition topicsBlocks for topic.")
 	}
 
 	block := response.GetBlock("topic", 5)
@@ -207,11 +207,11 @@ func TestOverflowMessageFetchResponse(t *testing.T) {
 	testVersionDecodable(t, "overflow message", &response, overflowMessageFetchResponse, 0)
 
 	if len(response.Blocks) != 1 {
-		t.Fatal("Decoding produced incorrect number of topic blocks.")
+		t.Fatal("Decoding produced incorrect number of topic topicsBlocks.")
 	}
 
 	if len(response.Blocks["topic"]) != 1 {
-		t.Fatal("Decoding produced incorrect number of partition blocks for topic.")
+		t.Fatal("Decoding produced incorrect number of partition topicsBlocks for topic.")
 	}
 
 	block := response.GetBlock("topic", 5)
@@ -267,11 +267,11 @@ func TestOneRecordFetchResponse(t *testing.T) {
 	testVersionDecodable(t, "one record", &response, oneRecordFetchResponse, 4)
 
 	if len(response.Blocks) != 1 {
-		t.Fatal("Decoding produced incorrect number of topic blocks.")
+		t.Fatal("Decoding produced incorrect number of topic topicsBlocks.")
 	}
 
 	if len(response.Blocks["topic"]) != 1 {
-		t.Fatal("Decoding produced incorrect number of partition blocks for topic.")
+		t.Fatal("Decoding produced incorrect number of partition topicsBlocks for topic.")
 	}
 
 	block := response.GetBlock("topic", 5)
@@ -313,11 +313,11 @@ func TestPartailFetchResponse(t *testing.T) {
 	testVersionDecodable(t, "partial record", &response, partialFetchResponse, 4)
 
 	if len(response.Blocks) != 1 {
-		t.Fatal("Decoding produced incorrect number of topic blocks.")
+		t.Fatal("Decoding produced incorrect number of topic topicsBlocks.")
 	}
 
 	if len(response.Blocks["topic"]) != 1 {
-		t.Fatal("Decoding produced incorrect number of partition blocks for topic.")
+		t.Fatal("Decoding produced incorrect number of partition topicsBlocks for topic.")
 	}
 
 	block := response.GetBlock("topic", 5)
@@ -352,11 +352,11 @@ func TestOneMessageFetchResponseV4(t *testing.T) {
 	testVersionDecodable(t, "one message v4", &response, oneMessageFetchResponseV4, 4)
 
 	if len(response.Blocks) != 1 {
-		t.Fatal("Decoding produced incorrect number of topic blocks.")
+		t.Fatal("Decoding produced incorrect number of topic topicsBlocks.")
 	}
 
 	if len(response.Blocks["topic"]) != 1 {
-		t.Fatal("Decoding produced incorrect number of partition blocks for topic.")
+		t.Fatal("Decoding produced incorrect number of partition topicsBlocks for topic.")
 	}
 
 	block := response.GetBlock("topic", 5)

@@ -848,7 +848,7 @@ func (bp *brokerProducer) handleResponse(response *brokerProducerResponse) {
 }
 
 func (bp *brokerProducer) handleSuccess(sent *produceSet, response *ProduceResponse) {
-	// we iterate through the blocks in the request set, not the response, so that we notice
+	// we iterate through the topicsBlocks in the request set, not the response, so that we notice
 	// if the response is missing a block completely
 	var retryTopics []string
 	sent.eachPartition(func(topic string, partition int32, pSet *partitionSet) {

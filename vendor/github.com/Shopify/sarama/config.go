@@ -30,7 +30,7 @@ type Config struct {
 	// shared by the Client/Producer/Consumer.
 	Net struct {
 		// How many outstanding requests a connection is allowed to have before
-		// sending on it blocks (default 5).
+		// sending on it topicsBlocks (default 5).
 		MaxOpenRequests int
 
 		// All three of the below configurations are similar to the

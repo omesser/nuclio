@@ -7,11 +7,17 @@ type fetchRequestBlock struct {
 	maxBytes       int32
 }
 
+type forgottenTopicRequestBlock struct {
+	version        int16
+	partitions     int32
+}
+
 func (b *fetchRequestBlock) encode(pe packetEncoder) error {
 	pe.putInt64(b.fetchOffset)
 	if b.version >= 5 {
 		pe.putInt64(b.logStartOffset)
 	}
+
 	pe.putInt32(b.maxBytes)
 	return nil
 }
@@ -21,6 +27,19 @@ func (b *fetchRequestBlock) decode(pd packetDecoder) (err error) {
 		return err
 	}
 	if b.maxBytes, err = pd.getInt32(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// see https://cwiki.apache.org/confluence/display/KAFKA/KIP-227%3A+Introduce+Incremental+FetchRequests+to+Increase+Partition+Scalability
+func (b *forgottenTopicRequestBlock) encode(pe packetEncoder) error {
+	pe.putInt32(b.partitions)
+	return nil
+}
+
+func (b *forgottenTopicRequestBlock) decode(pd packetDecoder) (err error) {
+	if b.partitions, err = pd.getInt32(); err != nil {
 		return err
 	}
 	return nil
@@ -37,7 +56,8 @@ type FetchRequest struct {
 	Isolation    IsolationLevel
 	SessionID    int32
 	SessionEpoch int32
-	blocks       map[string]map[int32]*fetchRequestBlock
+	topicsBlocks map[string]map[int32]*fetchRequestBlock
+	forgottenTopicsBlocks map[string]*forgottenTopicRequestBlock
 }
 
 type IsolationLevel int8
@@ -63,11 +83,11 @@ func (r *FetchRequest) encode(pe packetEncoder) (err error) {
 		pe.putInt32(r.SessionEpoch)
 	}
 
-	err = pe.putArrayLength(len(r.blocks))
+	err = pe.putArrayLength(len(r.topicsBlocks))
 	if err != nil {
 		return err
 	}
-	for topic, blocks := range r.blocks {
+	for topic, blocks := range r.topicsBlocks {
 		err = pe.putString(topic)
 		if err != nil {
 			return err
@@ -78,6 +98,23 @@ func (r *FetchRequest) encode(pe packetEncoder) (err error) {
 		}
 		for partition, block := range blocks {
 			pe.putInt32(partition)
+			err = block.encode(pe)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	if r.Version >= 7 {
+		err = pe.putArrayLength(len(r.forgottenTopicsBlocks))
+		if err != nil {
+			return err
+		}
+		for topic, block := range r.forgottenTopicsBlocks {
+			err = pe.putString(topic)
+			if err != nil {
+				return err
+			}
 			err = block.encode(pe)
 			if err != nil {
 				return err
@@ -114,30 +151,51 @@ func (r *FetchRequest) decode(pd packetDecoder, version int16) (err error) {
 	if err != nil {
 		return err
 	}
-	if topicCount == 0 {
-		return nil
-	}
-	r.blocks = make(map[string]map[int32]*fetchRequestBlock)
-	for i := 0; i < topicCount; i++ {
-		topic, err := pd.getString()
-		if err != nil {
-			return err
-		}
-		partitionCount, err := pd.getArrayLength()
-		if err != nil {
-			return err
-		}
-		r.blocks[topic] = make(map[int32]*fetchRequestBlock)
-		for j := 0; j < partitionCount; j++ {
-			partition, err := pd.getInt32()
+	if topicCount != 0 {
+		r.topicsBlocks = make(map[string]map[int32]*fetchRequestBlock)
+		for i := 0; i < topicCount; i++ {
+			topic, err := pd.getString()
 			if err != nil {
 				return err
 			}
-			fetchBlock := &fetchRequestBlock{}
-			if err = fetchBlock.decode(pd); err != nil {
+			partitionCount, err := pd.getArrayLength()
+			if err != nil {
 				return err
 			}
-			r.blocks[topic][partition] = fetchBlock
+			r.topicsBlocks[topic] = make(map[int32]*fetchRequestBlock)
+			for j := 0; j < partitionCount; j++ {
+				partition, err := pd.getInt32()
+				if err != nil {
+					return err
+				}
+				fetchBlock := &fetchRequestBlock{}
+				if err = fetchBlock.decode(pd); err != nil {
+					return err
+				}
+				r.topicsBlocks[topic][partition] = fetchBlock
+			}
+		}
+	}
+
+	if r.Version >= 7 {
+		forgottenTopicCount, err := pd.getArrayLength()
+		if err != nil {
+			return err
+		}
+		if forgottenTopicCount != 0 {
+			r.forgottenTopicsBlocks = make(map[string]*forgottenTopicRequestBlock)
+			for i := 0; i < topicCount; i++ {
+				topic, err := pd.getString()
+				if err != nil {
+					return err
+				}
+				r.forgottenTopicsBlocks[topic] = &forgottenTopicRequestBlock{}
+				partitions, err := pd.getInt32()
+				if err != nil {
+					return err
+				}
+				r.forgottenTopicsBlocks[topic].partitions = partitions
+			}
 		}
 	}
 	return nil
@@ -161,23 +219,25 @@ func (r *FetchRequest) requiredVersion() KafkaVersion {
 		return V0_10_1_0
 	case 4:
 		return V0_11_0_0
+	case 7:
+		return V1_0_0_0
 	default:
 		return MinVersion
 	}
 }
 
-func (r *FetchRequest) AddBlock(version int16,
+func (r *FetchRequest) AddTopicBlock(version int16,
 	topic string,
 	partitionID int32,
 	fetchOffset int64,
 	logStartOffset int64,
 	maxBytes int32) {
-	if r.blocks == nil {
-		r.blocks = make(map[string]map[int32]*fetchRequestBlock)
+	if r.topicsBlocks == nil {
+		r.topicsBlocks = make(map[string]map[int32]*fetchRequestBlock)
 	}
 
-	if r.blocks[topic] == nil {
-		r.blocks[topic] = make(map[int32]*fetchRequestBlock)
+	if r.topicsBlocks[topic] == nil {
+		r.topicsBlocks[topic] = make(map[int32]*fetchRequestBlock)
 	}
 
 	tmp := new(fetchRequestBlock)
@@ -186,5 +246,19 @@ func (r *FetchRequest) AddBlock(version int16,
 	tmp.logStartOffset = logStartOffset
 	tmp.fetchOffset = fetchOffset
 
-	r.blocks[topic][partitionID] = tmp
+	r.topicsBlocks[topic][partitionID] = tmp
+}
+
+func (r *FetchRequest) AddForgottenTopicBlock(version int16,
+	topic string,
+	partitions int32) {
+	if r.forgottenTopicsBlocks == nil {
+		r.forgottenTopicsBlocks = make(map[string]*forgottenTopicRequestBlock)
+	}
+
+	forgottenTopic := new(forgottenTopicRequestBlock)
+	forgottenTopic.version = version
+	forgottenTopic.partitions = partitions
+
+	r.forgottenTopicsBlocks[topic] = forgottenTopic
 }

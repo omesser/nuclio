@@ -14,7 +14,7 @@ var ErrClosedClient = errors.New("kafka: tried to use a client that was closed")
 
 // ErrIncompleteResponse is the error returned when the server returns a syntactically valid response, but it does
 // not contain the expected information.
-var ErrIncompleteResponse = errors.New("kafka: response did not contain all the expected topic/partition blocks")
+var ErrIncompleteResponse = errors.New("kafka: response did not contain all the expected topic/partition topicsBlocks")
 
 // ErrInvalidPartition is the error returned when a partitioner returns an invalid partition index
 // (meaning one outside of the range [0...numPartitions-1]).
