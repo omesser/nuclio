@@ -665,6 +665,10 @@ func (s *consumerGroupSession) ResetOffset(topic string, partition int32, offset
 
 func (s *consumerGroupSession) MarkMessage(msg *ConsumerMessage, metadata string) {
 	s.MarkOffset(msg.Topic, msg.Partition, msg.Offset+1, metadata)
+	if pom := s.offsets.findPOM(msg.Topic, msg.Partition); pom != nil {
+		pom.CommitOffset()
+	}
+
 }
 
 func (s *consumerGroupSession) Context() context.Context {

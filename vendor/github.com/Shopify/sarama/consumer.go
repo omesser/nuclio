@@ -795,6 +795,15 @@ func (bc *brokerConsumer) subscriptionConsumer() {
 			return
 		}
 
+		// handle top level fetch response error https://cwiki.apache.org/confluence/display/KAFKA/KIP-227
+		if response.ErrorCode != 0 {
+			err := KError(response.ErrorCode)
+			Logger.Printf("consumer/broker/%d disconnecting due to FetchRequest top level response error: %s\n",
+				bc.broker.ID(), err)
+			bc.abort(err)
+			return
+		}
+
 		bc.acks.Add(len(bc.subscriptions))
 		for child := range bc.subscriptions {
 			child.feeder <- response

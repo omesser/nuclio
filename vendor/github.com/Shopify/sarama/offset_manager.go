@@ -266,6 +266,26 @@ func (om *offsetManager) flushToBroker() {
 	om.handleResponse(broker, req, resp)
 }
 
+func (om *offsetManager) CommitOffset() {
+	req := om.constructRequest()
+	if req == nil {
+		return
+	}
+
+	broker, err := om.coordinator()
+	if err != nil {
+		return
+	}
+
+	resp, err := broker.CommitOffset(req)
+	if err != nil {
+		om.handleError(err)
+		om.releaseCoordinator(broker)
+	}
+
+	om.handleResponse(broker, req, resp)
+}
+
 func (om *offsetManager) constructRequest() *OffsetCommitRequest {
 	var r *OffsetCommitRequest
 	var perPartitionTimestamp int64
@@ -286,6 +306,9 @@ func (om *offsetManager) constructRequest() *OffsetCommitRequest {
 			ConsumerGroupGeneration: om.generation,
 		}
 
+		if om.conf.Version.IsAtLeast(V1_0_0_0) {
+			r.Version = 3
+		}
 	}
 
 	om.pomsLock.RLock()
@@ -294,9 +317,10 @@ func (om *offsetManager) constructRequest() *OffsetCommitRequest {
 	for _, topicManagers := range om.poms {
 		for _, pom := range topicManagers {
 			pom.lock.Lock()
-			if pom.dirty {
-				r.AddBlock(pom.topic, pom.partition, pom.offset, perPartitionTimestamp, pom.metadata)
-			}
+			r.AddBlock(pom.topic, pom.partition, pom.offset, perPartitionTimestamp, pom.metadata)
+			//if pom.dirty {
+			//	r.AddBlock(pom.topic, pom.partition, pom.offset, perPartitionTimestamp, pom.metadata)
+			//}
 			pom.lock.Unlock()
 		}
 	}
@@ -470,6 +494,8 @@ type PartitionOffsetManager interface {
 	// passes out of scope, as it will otherwise leak memory. You must call this
 	// before calling Close on the underlying client.
 	Close() error
+
+	CommitOffset()
 }
 
 type partitionOffsetManager struct {
@@ -527,6 +553,10 @@ func (pom *partitionOffsetManager) ResetOffset(offset int64, metadata string) {
 		pom.metadata = metadata
 		pom.dirty = true
 	}
+}
+
+func (pom *partitionOffsetManager) CommitOffset() {
+	pom.parent.CommitOffset()
 }
 
 func (pom *partitionOffsetManager) updateCommitted(offset int64, metadata string) {
