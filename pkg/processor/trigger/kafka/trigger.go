@@ -98,6 +98,9 @@ func newTrigger(parentLogger logger.Logger,
 	//newTrigger.kafkaConfig.Version = sarama.V0_11_0_0
 
 	newTrigger.kafkaConfig.Version = sarama.V2_3_0_0
+	newTrigger.kafkaConfig.Consumer.Offsets.AutoCommit.Enable = true
+	newTrigger.kafkaConfig.Consumer.Offsets.AutoCommit.Interval = 100 * time.Millisecond
+	newTrigger.kafkaConfig.Consumer.Offsets.Retention = 1 * time.Second
 
 	return newTrigger, nil
 }
