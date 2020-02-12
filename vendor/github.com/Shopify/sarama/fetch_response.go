@@ -334,6 +334,8 @@ func (r *FetchResponse) requiredVersion() KafkaVersion {
 		return V0_10_1_0
 	case 4:
 		return V0_11_0_0
+	case 7:
+		return V1_0_0_0
 	default:
 		return MinVersion
 	}
